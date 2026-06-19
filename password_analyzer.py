@@ -61,11 +61,71 @@ def calculate_entropy(password):
 
     return round(entropy, 2)
 
+def load_dictionary_words(filepath="data/common_words.txt"):
+    """Load dictionary words from a file."""
+    try:
+        with open(filepath, "r") as f:
+            words = [w.strip().lower() for w in f.readlines()]
+        return words
+    except FileNotFoundError:
+        return []
+    
+def load_common_passwords(filepath="data/common_passwords.txt"):
+    """Load a list of common passwords from a file."""
+    try:
+        with open(filepath, "r") as f:
+            return [p.strip().lower() for p in f.readlines()]
+    except FileNotFoundError:
+        return []
+
+def normalize_leetspeak(password):
+    """Convert common leet-speak characters to their alphabetic equivalents."""
+    leet_map = {
+        '@': 'a',
+        '4': 'a',
+        '3': 'e',
+        '1': 'l',
+        '!': 'i',
+        '0': 'o',
+        '$': 's',
+        '5': 's',
+        '7': 't'
+    }
+
+    normalized = ""
+    for char in password.lower():
+        normalized += leet_map.get(char, char)
+
+    return normalized
+    
+def dictionary_word_detection(password, dictionary_words):
+    """Check if the password contains dictionary words or common patterns."""
+    password_lower = password.lower()
+    normalized = normalize_leetspeak(password_lower)
+
+    found_words = []
+
+    for word in dictionary_words:
+        if word in password_lower or word in normalized:
+            found_words.append(word)
+
+    return found_words
+
+def common_password_detection(password, common_passwords):
+    """Check if the password exactly matches a known common password."""
+    return password.lower() in common_passwords
+
 def analyze_password(password):
     """Run all analysis modules and return a structured result."""
     length_score, length_msg = analyze_length(password)
     type_score, type_msgs = analyze_character_types(password)
     entropy = calculate_entropy(password)
+
+    dictionary_words = load_dictionary_words()
+    found_words = dictionary_word_detection(password, dictionary_words)
+
+    common_passwords = load_common_passwords()
+    is_common = common_password_detection(password, common_passwords)
 
     total_score = length_score + type_score
 
@@ -76,6 +136,8 @@ def analyze_password(password):
         "character_type_score": type_score,
         "character_type_feedback": type_msgs,
         "entropy": entropy,
+        "dictionary_matches": found_words,
+        "is_common_password": is_common,
         "total_score": total_score
     }
 

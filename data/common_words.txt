@@ -1,0 +1,10 @@
+password
+admin
+welcome
+letmein
+qwerty
+dragon
+football
+monkey
+login
+user
