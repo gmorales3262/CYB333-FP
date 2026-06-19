@@ -111,6 +111,59 @@ def dictionary_word_detection(password, dictionary_words):
 
     return found_words
 
+def detect_sequences(password):
+    """Detect common sequential patterns in the password."""
+    sequences = []
+
+    # Numeric sequences
+    numeric_sequences = ["0123456789", "1234567890"]
+    # Alphabet sequences
+    alpha_sequences = ["abcdefghijklmnopqrstuvwxyz", "zyxwvutsrqponmlkjihgfedcba"]
+    # Keyboard sequences
+    keyboard_sequences = ["qwertyuiop", "asdfghjkl", "zxcvbnm"]
+
+    password_lower = password.lower()
+
+    # Check numeric sequences
+    for seq in numeric_sequences:
+        for i in range(len(seq) - 2):
+            if seq[i:i+3] in password_lower:
+                sequences.append(seq[i:i+3])
+
+    # Check alphabet sequences
+    for seq in alpha_sequences:
+        for i in range(len(seq) - 2):
+            if seq[i:i+3] in password_lower:
+                sequences.append(seq[i:i+3])
+
+    # Check keyboard sequences
+    for seq in keyboard_sequences:
+        for i in range(len(seq) - 2):
+            if seq[i:i+3] in password_lower:
+                sequences.append(seq[i:i+3])
+
+    return list(set(sequences))
+
+def detect_repeated_characters(password):
+    """Detect repeated characters like 'aaa' or '111'."""
+    repeats = []
+    current = password[0]
+    count = 1
+
+    for char in password[1:]:
+        if char == current:
+            count += 1
+        else:
+            if count >= 3:
+                repeats.append(current * count)
+            current = char
+            count = 1
+
+    if count >= 3:
+        repeats.append(current * count)
+
+    return repeats
+
 def common_password_detection(password, common_passwords):
     """Check if the password exactly matches a known common password."""
     return password.lower() in common_passwords
@@ -127,6 +180,9 @@ def analyze_password(password):
     common_passwords = load_common_passwords()
     is_common = common_password_detection(password, common_passwords)
 
+    sequences = detect_sequences(password)
+    repeats = detect_repeated_characters(password)
+
     total_score = length_score + type_score
 
     return {
@@ -138,6 +194,8 @@ def analyze_password(password):
         "entropy": entropy,
         "dictionary_matches": found_words,
         "is_common_password": is_common,
+        "sequences_detected": sequences,
+        "repeated_characters": repeats,
         "total_score": total_score
     }
 
