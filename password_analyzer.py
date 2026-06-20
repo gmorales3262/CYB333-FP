@@ -168,6 +168,52 @@ def common_password_detection(password, common_passwords):
     """Check if the password exactly matches a known common password."""
     return password.lower() in common_passwords
 
+def generate_recommendations(results):
+    """Generate human-readable recommendations based on analysis results."""
+    recs = []
+
+    # Length recommendations
+    if results["length_score"] == 1:
+        recs.append("Increase password length to at least 12 characters.")
+    elif results["length_score"] == 2:
+        recs.append("Consider increasing password length for stronger security.")
+
+    # Character type recommendations
+    if "Missing uppercase letter." in results["character_type_feedback"]:
+        recs.append("Add at least one uppercase letter.")
+    if "Missing lowercase letter." in results["character_type_feedback"]:
+        recs.append("Add at least one lowercase letter.")
+    if "Missing digit." in results["character_type_feedback"]:
+        recs.append("Include at least one number.")
+    if "Missing special character." in results["character_type_feedback"]:
+        recs.append("Add at least one special character (e.g., !, @, #, $).")
+
+    # Dictionary word detection
+    if results["dictionary_matches"]:
+        recs.append("Avoid using dictionary words or common phrases.")
+
+    # Common password detection
+    if results["is_common_password"]:
+        recs.append("This password is commonly used and easily guessed. Choose a more unique password.")
+
+    # Sequential patterns
+    if results["sequential_patterns"]:
+        recs.append("Avoid sequential patterns like '123' or 'abc'.")
+
+    # Repeated characters
+    if results["repeated_patterns"]:
+        recs.append("Avoid repeated characters such as 'aaa' or '111'.")
+
+    # Entropy
+    if results["entropy"] < 3.5:
+        recs.append("Increase randomness to improve entropy.")
+
+    # If no recommendations, password is strong
+    if not recs:
+        recs.append("Your password appears strong.")
+
+    return recs
+
 def analyze_password(password):
     """Run all analysis modules and return a structured result."""
     length_score, length_msg = analyze_length(password)
@@ -185,6 +231,16 @@ def analyze_password(password):
 
     total_score = length_score + type_score
 
+    recomendations = generate_recommendations({
+        "length_score": length_score,
+        "character_type_feedback": type_msgs,
+        "dictionary_matches": found_words,
+        "is_common_password": is_common,
+        "sequential_patterns": sequences,
+        "repeated_patterns": repeats,
+        "entropy": entropy
+    })
+
     return {
         "password": password,
         "length_score": length_score,
@@ -196,6 +252,7 @@ def analyze_password(password):
         "is_common_password": is_common,
         "sequences_detected": sequences,
         "repeated_characters": repeats,
+        "recommendations": recomendations,
         "total_score": total_score
     }
 
