@@ -146,6 +146,9 @@ def detect_sequences(password):
 
 def detect_repeated_characters(password):
     """Detect repeated characters like 'aaa' or '111'."""
+    if not password:
+        return []
+    
     repeats = []
     current = password[0]
     count = 1
@@ -214,6 +217,50 @@ def generate_recommendations(results):
 
     return recs
 
+def calculate_strength_score(results):
+    """Calculate a refined 0–10 password strength score."""
+    score = 0
+
+    # Length (0–2)
+    if results["length_score"] == 1:
+        score += 0
+    elif results["length_score"] == 2:
+        score += 1
+    elif results["length_score"] == 3:
+        score += 2
+
+    # Character diversity (0–3)
+    score += results["character_type_score"]  # already 0–4
+    if score > 3:
+        score = 3  # cap at 3 for this category
+
+    # Entropy (0–2)
+    if results["entropy"] < 3.0:
+        score += 0
+    elif results["entropy"] < 4.0:
+        score += 1
+    else:
+        score += 2
+
+    # Dictionary penalty (–2)
+    if results["dictionary_matches"]:
+        score -= 2
+
+    # Common password penalty (–3)
+    if results["is_common_password"]:
+        score -= 3
+
+    # Pattern penalties (–2 total)
+    if results["sequential_patterns"]:
+        score -= 1
+    if results["repeated_patterns"]:
+        score -= 1
+
+    # Clamp score to 0–10
+    score = max(0, min(10, score))
+
+    return score
+
 def analyze_password(password):
     """Run all analysis modules and return a structured result."""
     length_score, length_msg = analyze_length(password)
@@ -241,6 +288,16 @@ def analyze_password(password):
         "entropy": entropy
     })
 
+    strength_score = calculate_strength_score({
+    "length_score": length_score,
+    "character_type_score": type_score,
+    "entropy": entropy,
+    "dictionary_matches": found_words,
+    "is_common_password": is_common,
+    "sequential_patterns": sequences,
+    "repeated_patterns": repeats
+})
+
     return {
         "password": password,
         "length_score": length_score,
@@ -253,8 +310,27 @@ def analyze_password(password):
         "sequences_detected": sequences,
         "repeated_characters": repeats,
         "recommendations": recomendations,
+        "strength_score": strength_score,
         "total_score": total_score
     }
+
+def analyze_password_file(filepath):
+    """Analyze multiple passwords from a file and return a list of results."""
+    results = []
+
+    try:
+        with open(filepath, "r") as f:
+            passwords = [line.strip() for line in f.readlines()]
+    except FileNotFoundError:
+        print(f"File not found: {filepath}")
+        return []
+
+    for pwd in passwords:
+        if pwd:  # skip empty lines
+            analysis = analyze_password(pwd)
+            results.append(analysis)
+
+    return results
 
 if __name__ == "__main__":
     test = input("Enter a password to analyze: ")
